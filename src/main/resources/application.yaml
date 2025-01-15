@@ -1,0 +1,13 @@
+spring:
+    application:
+        name: corix-backend
+    h2:
+        console.enabled: true
+    datasource:
+        url: jdbc:h2:mem:dcbapp
+        driverClassName: org.h2.Driver
+        username: sa
+        password: password
+        data: classpath:todo.sql
+    jpa:
+        spring.jpa.database-platform: org.hibernate.dialect.H2Dialect
