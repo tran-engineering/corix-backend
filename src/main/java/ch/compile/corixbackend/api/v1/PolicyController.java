@@ -48,7 +48,5 @@ public class PolicyController {
         } catch (ClassNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Class not found");
         }
-
     }
-
 }

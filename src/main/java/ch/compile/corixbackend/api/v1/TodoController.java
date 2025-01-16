@@ -1,23 +1,19 @@
 package ch.compile.corixbackend.api.v1;
 
-import java.lang.reflect.Field;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 
 import org.springdoc.core.models.GroupedOpenApi;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.server.ResponseStatusException;
 
-import ch.compile.corixbackend.api.v1.PolicyChecker.Violation;
-import ch.compile.corixbackend.api.v1.Todo.State;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -41,7 +37,7 @@ public class TodoController {
 
     @PostConstruct
     void fixtures() {
-        todoRepository.save(new Todo("corix", "Hold a workshop", "Do your best!", State.NEW));
+        todoRepository.save(new Todo("corix", "Hold a workshop", "Do your best!", "NEW"));
     }
 
     @GetMapping
@@ -51,24 +47,44 @@ public class TodoController {
 
     @PostMapping
     public Todo createTodo(String title, String description) {
-        return todoRepository.save(new Todo(UUID.randomUUID().toString(), title, description, State.NEW));
+        return todoRepository.save(new Todo(UUID.randomUUID().toString(), title, description, "NEW"));
+    }
+
+    @PatchMapping
+    public Todo patchTodo(String id, String field, String value) {
+        Todo oldTodo = todoRepository
+                .findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+
+        Todo newTodo = new Todo(oldTodo.getId(), oldTodo.getTitle(), oldTodo.getDescription(), oldTodo.getState());
+        try {
+            Todo.class.getField(field).set(newTodo, value);
+            policyChecker.checkPolicyViolation(oldTodo, newTodo);
+            todoRepository.save(newTodo);
+            return newTodo;
+        } catch (NoSuchFieldException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Field not found");
+        } catch (IllegalAccessException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Could not access field");
+        } catch (CorixEditablePolicyViolation e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Policy violation: " + e.getMessage());
+        }
     }
 
     @PutMapping
-    public Todo updateTodo(String id, String title, String description, State state) {
+    public Todo updateTodo(String id, String title, String description, String state) {
         Todo oldTodo = todoRepository
                 .findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
         Todo newTodo = new Todo(id, title, description, state);
-
-        Set<Violation> policyViolations = policyChecker.checkPolicyViolation(oldTodo, newTodo);
-
-        log.info("{}", policyViolations);
-
+        try {
+            policyChecker.checkPolicyViolation(oldTodo, newTodo);
+        } catch (CorixEditablePolicyViolation e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Policy violation: " + e.getMessage());
+        }
         todoRepository.save(newTodo);
-        
+
         return newTodo;
     }
-
 }
