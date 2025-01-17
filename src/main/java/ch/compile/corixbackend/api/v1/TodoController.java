@@ -6,6 +6,7 @@ import java.util.UUID;
 import org.springdoc.core.models.GroupedOpenApi;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -14,6 +15,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.parameters.RequestBody;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,6 +31,7 @@ import lombok.extern.slf4j.Slf4j;
 @RequestMapping("/api/v1/todo")
 public class TodoController {
 
+    private static final String DEFAULT_UUID = "2307300d-c743-4636-ac98-ddee681eaee7";
     private final TodoRepository todoRepository;
     private final PolicyChecker policyChecker;
 
@@ -37,21 +45,40 @@ public class TodoController {
 
     @PostConstruct
     void fixtures() {
-        todoRepository.save(new Todo("corix", "Hold a workshop", "Do your best!", "NEW"));
+        todoRepository.save(new Todo(UUID.fromString(DEFAULT_UUID), "Hold a workshop", "Do your best!", "NEW"));
     }
 
-    @GetMapping
-    public List<Todo> getTodo() {
+    @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "Returns all todos")
+    @ApiResponse(responseCode = "200", description = "Returns all todos", content = @Content(mediaType = "application/json"))
+    public List<Todo> getTodos() {
         return todoRepository.findAll();
     }
 
-    @PostMapping
-    public Todo createTodo(String title, String description) {
-        return todoRepository.save(new Todo(UUID.randomUUID().toString(), title, description, "NEW"));
+    @PostMapping(produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "Creates a new todo")
+    @ApiResponse(responseCode = "200", description = "Creates a new todo", content = @Content(mediaType = "application/json"))
+    public Todo createTodo(
+        @Parameter(example = "My new todo", required = true)
+        String title, 
+        @Parameter(example = "Description of todo", required = true)
+        String description
+        ) {
+        return todoRepository.save(new Todo(UUID.randomUUID(), title, description, "NEW"));
     }
 
-    @PatchMapping
-    public Todo patchTodo(String id, String field, String value) {
+    @PatchMapping(produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "Updates a single field of a todo")
+    @ApiResponse(responseCode = "200", description = "Returns updated Todo", content = @Content(mediaType = "application/json"))
+    @ApiResponse(responseCode = "400", description = "Policy violation", content = @Content(mediaType = "application/json"))
+    public Todo patchTodo(
+        @Parameter(example = DEFAULT_UUID, required = true)
+        UUID id, 
+        @Parameter(example = "title", required = true)
+        String field, 
+        @Parameter(example = "My new Title", required = true)
+        String value
+        ) {
         Todo oldTodo = todoRepository
                 .findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
@@ -71,13 +98,26 @@ public class TodoController {
         }
     }
 
-    @PutMapping
-    public Todo updateTodo(String id, String title, String description, String state) {
+    @PutMapping(produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "Updates a todo")
+    @ApiResponse(responseCode = "200", description = "The updated Todo", content = @Content(mediaType = "application/json"))
+    @ApiResponse(responseCode = "400", description = "Policy violation", content = @Content(mediaType = "application/json"))
+    public Todo updateTodo(
+        @RequestBody(content = @Content(mediaType = "application/json", examples = @ExampleObject("""
+            {
+            "id": "2307300d-c743-4636-ac98-ddee681eaee7",
+            "title": "Updated Title",
+            "description": "Updated Descrption",
+            "state": "DONE"
+            }
+        """)))
+        @org.springframework.web.bind.annotation.RequestBody
+        Todo newTodo
+        ) {
         Todo oldTodo = todoRepository
-                .findById(id)
+                .findById(newTodo.getId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
-        Todo newTodo = new Todo(id, title, description, state);
         try {
             policyChecker.checkPolicyViolation(oldTodo, newTodo);
         } catch (CorixEditablePolicyViolation e) {
