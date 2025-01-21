@@ -9,12 +9,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
+import ch.compile.corixbackend.api.v1.EntityPolicyChecker.PolicyViolationException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -33,7 +35,7 @@ public class TodoController {
 
     private static final String DEFAULT_UUID = "2307300d-c743-4636-ac98-ddee681eaee7";
     private final TodoRepository todoRepository;
-    private final PolicyChecker policyChecker;
+    private final EntityPolicyChecker policyChecker;
 
     @Bean
     public GroupedOpenApi todoApi() {
@@ -53,6 +55,16 @@ public class TodoController {
     @ApiResponse(responseCode = "200", description = "Returns all todos", content = @Content(mediaType = "application/json"))
     public List<Todo> getTodos() {
         return todoRepository.findAll();
+    }
+
+    @GetMapping(
+        path = "{id}",
+        produces = MediaType.APPLICATION_JSON_VALUE
+        )
+    @Operation(summary = "Returns one todo")
+    @ApiResponse(responseCode = "200", description = "Returns all todos", content = @Content(mediaType = "application/json"))
+    public Todo getTodo(@PathVariable @Parameter(example = DEFAULT_UUID) UUID id) {
+        return todoRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
     }
 
     @PostMapping(produces = MediaType.APPLICATION_JSON_VALUE)
@@ -93,7 +105,7 @@ public class TodoController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Field not found");
         } catch (IllegalAccessException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Could not access field");
-        } catch (CorixEditablePolicyViolation e) {
+        } catch (PolicyViolationException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Policy violation: " + e.getMessage());
         }
     }
@@ -120,7 +132,7 @@ public class TodoController {
 
         try {
             policyChecker.checkPolicyViolation(oldTodo, newTodo);
-        } catch (CorixEditablePolicyViolation e) {
+        } catch (PolicyViolationException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Policy violation: " + e.getMessage());
         }
         todoRepository.save(newTodo);
