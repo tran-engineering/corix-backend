@@ -3,6 +3,7 @@ package ch.compile.corixbackend.api.v1;
 import java.util.UUID;
 
 import ch.compile.corixbackend.api.v1.EntityPolicy.EditableIf;
+import ch.compile.corixbackend.api.v1.EntityPolicy.VisibleIf;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -27,6 +28,10 @@ public class Todo {
     
     @EditableIf(expression = "state != 'DONE'")
     String description;
+
+    @EditableIf(expression = "state == 'DONE'")
+    @VisibleIf(expression = "state == 'DONE'")
+    String postMortemNotes;
     
     @Schema(allowableValues = {"NEW", "IN PROGRESS", "DONE"})
     String state;

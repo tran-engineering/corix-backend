@@ -65,8 +65,8 @@ public class PolicyController {
         return allPolicies.stream()
                 .collect(
                     groupingBy(d -> d.clazz().getSimpleName(), 
-                    groupingBy(d -> d.annotationClass.getSimpleName(),
-                    toMap(d -> d.field.getName(), d-> d.expression()))));
+                    groupingBy(d -> d.field.getName(),
+                    toMap(d -> d.annotationClass.getSimpleName(), d-> d.expression()))));
     }
 
     private List<PolicyDefinition> getPolicyForClass(Class<?> clazz) {

@@ -47,7 +47,7 @@ public class TodoController {
 
     @PostConstruct
     void fixtures() {
-        todoRepository.save(new Todo(UUID.fromString(DEFAULT_UUID), "Hold a workshop", "Do your best!", "NEW"));
+        todoRepository.save(new Todo(UUID.fromString(DEFAULT_UUID), "Hold a workshop", "Do your best!", "", "NEW"));
     }
 
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
@@ -71,12 +71,18 @@ public class TodoController {
     @Operation(summary = "Creates a new todo")
     @ApiResponse(responseCode = "200", description = "Creates a new todo", content = @Content(mediaType = "application/json"))
     public Todo createTodo(
-        @Parameter(example = "My new todo", required = true)
-        String title, 
-        @Parameter(example = "Description of todo", required = true)
-        String description
+        @RequestBody(content = @Content(mediaType = "application/json", examples = @ExampleObject("""
+            {
+            "id": "2307300d-c743-4636-ac98-ddee681eaee7",
+            "title": "My new TODO",
+            "description": "Some non-descript description",
+            "state": "NEW"
+            }
+        """)))
+        @org.springframework.web.bind.annotation.RequestBody
+        Todo newTodo
         ) {
-        return todoRepository.save(new Todo(UUID.randomUUID(), title, description, "NEW"));
+        return todoRepository.save(newTodo);
     }
 
     @PatchMapping(produces = MediaType.APPLICATION_JSON_VALUE)
@@ -95,7 +101,7 @@ public class TodoController {
                 .findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
-        Todo newTodo = new Todo(oldTodo.getId(), oldTodo.getTitle(), oldTodo.getDescription(), oldTodo.getState());
+        Todo newTodo = new Todo(oldTodo.getId(), oldTodo.getTitle(), oldTodo.getDescription(), "", oldTodo.getState());
         try {
             Todo.class.getField(field).set(newTodo, value);
             policyChecker.checkPolicyViolation(oldTodo, newTodo);
