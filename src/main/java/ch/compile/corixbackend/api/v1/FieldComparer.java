@@ -17,11 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 public class FieldComparer {
 
     /**
-     * Checks if a field has been changed
-     * @param <T> Type of the input object
-     * @param o1
-     * @param o2
-     * @return
+     * @return all fields that have been changed between two objects
      */
     public <T> Set<Field> changedFields(T o1, T o2) {
 

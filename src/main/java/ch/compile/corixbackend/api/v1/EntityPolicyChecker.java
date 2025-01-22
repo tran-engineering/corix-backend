@@ -41,8 +41,9 @@ public class EntityPolicyChecker {
         Set<Field> changedFields = fieldComparer.changedFields(oldValue, newValue);
         Set<Violation> violations = new HashSet<>();
 
+        // Only check for violations in changed fields
         for (Field f : changedFields) {
-            for (Class<? extends Annotation> annotationClass : EntityPolicy.entityPolicies) {
+            for (Class<? extends Annotation> annotationClass : EntityPolicy.REGISTERED_POLICIES) {
                 if (f.isAnnotationPresent(annotationClass)) {
                     switch (f.getAnnotation(annotationClass)) {
                         case EditableIf annotation -> {

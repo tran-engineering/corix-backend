@@ -25,6 +25,9 @@ import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * Controller that returns all the policies, mainly used for the frontend to fetch all EntityPolicies
+ */
 @RestController
 @RequiredArgsConstructor
 @Slf4j
@@ -41,6 +44,9 @@ public class PolicyController {
                 .build();
     }
 
+    /**
+     * @return all policies for all entities
+     */
     @GetMapping(produces = "application/json")
     @Operation(summary = "Returns all policies")
     @ApiResponse(
@@ -49,8 +55,9 @@ public class PolicyController {
         examples = @ExampleObject("""
             {
                 "SomeEntity" : {
-                    "EditableIf: {
-                        "someField" : "otherField == 'someValue'"
+                    "someField: {
+                        "EditableIf" : "otherField == 'someValue'",
+                        "VisibleIf" : "otherField == 'someOtherValue'"
                     }
                 }
             }
@@ -69,9 +76,12 @@ public class PolicyController {
                     toMap(d -> d.annotationClass.getSimpleName(), d-> d.expression()))));
     }
 
+    /**
+     * Returns all policies for a given class
+     * */
     private List<PolicyDefinition> getPolicyForClass(Class<?> clazz) {
         return Arrays.stream(clazz.getDeclaredFields()).flatMap(field -> {
-            return EntityPolicy.entityPolicies.stream()
+            return EntityPolicy.REGISTERED_POLICIES.stream()
                     .filter(annotationClass -> field.isAnnotationPresent(annotationClass))
                     .map(annotationClass -> switch (field.getAnnotation(annotationClass)) {
                         case EditableIf ann -> new PolicyDefinition(clazz, field, annotationClass, ann.expression());

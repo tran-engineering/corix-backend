@@ -8,11 +8,11 @@ spring:
         driverClassName: org.h2.Driver
         username: sa
         password: password
-        data: classpath:todo.sql
     jpa:
         spring.jpa.database-platform: org.hibernate.dialect.H2Dialect
 
 server:
     port: 5050
     error:
+        # Makes Spring Boot include the exception stack trace in the HTTP response
         include-message: always
