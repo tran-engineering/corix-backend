@@ -73,9 +73,10 @@ public class TodoController {
     public Todo createTodo(
         @RequestBody(content = @Content(mediaType = "application/json", examples = @ExampleObject("""
             {
-            "id": "2307300d-c743-4636-ac98-ddee681eaee7",
+            "id": "f214f5a3-4e75-4126-8e3f-20d2c0c39dfc",
             "title": "My new TODO",
             "description": "Some non-descript description",
+            "postMortemNotes": "",
             "state": "NEW"
             }
         """)))
@@ -103,7 +104,7 @@ public class TodoController {
 
         Todo newTodo = new Todo(oldTodo.getId(), oldTodo.getTitle(), oldTodo.getDescription(), "", oldTodo.getState());
         try {
-            Todo.class.getField(field).set(newTodo, value);
+            Todo.class.getDeclaredField(field).set(newTodo, value);
             policyChecker.checkPolicyViolation(oldTodo, newTodo);
             todoRepository.save(newTodo);
             return newTodo;
@@ -126,6 +127,7 @@ public class TodoController {
             "id": "2307300d-c743-4636-ac98-ddee681eaee7",
             "title": "Updated Title",
             "description": "Updated Descrption",
+            "postMortemNotes": "",
             "state": "DONE"
             }
         """)))
